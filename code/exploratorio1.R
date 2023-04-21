@@ -89,3 +89,7 @@ bicis %>%
   ggplot(aes(Fecha, mean, color = tipo_dias)) + 
   geom_line() +
   facet_wrap(tipo_dias~.)
+
+acc_21 %>% 
+  tabyl(Region) %>% 
+  arrange(desc(n))
