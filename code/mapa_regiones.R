@@ -6,7 +6,8 @@ pacman::p_load(tidyverse,
                janitor,
                readr,
                lubridate,
-               chilemapas)
+               chilemapas,
+               sf)
 
 acc_21 <- read_rds("data/accidentes_21.rds")
 pers_21 <- read_rds("data/personas_21.rds")
@@ -32,4 +33,27 @@ acc_georegion <- acc_21 %>%
   group_by(Region) %>% 
   count() %>% 
   left_join(regiones, by = c("Region" = "cod_reg"))
+
+acc_georegion %>% 
+  ggplot() +
+  geom_sf(aes(geometry = geometry, fill = n))
+
+muertos_reg21 <- acc_21 %>% 
+  rowwise() %>% 
+  mutate(personas = sum(c(Muertos, Graves, M.Grave, Leves, Ilesos))) %>% 
+  ungroup() %>% 
+  group_by(Region) %>% 
+  summarise(muertos_reg = sum(Muertos),
+            perso_reg = sum(personas),
+            ratio_muertos = muertos_reg/perso_reg)
+
+muertos_reg21 %>% 
+  left_join(regiones, by = c("Region" = "cod_reg")) %>% 
+  ggplot()+
+  geom_sf(aes(geometry = geometry, fill = ratio_muertos)) +
+  coord_sf(xlim = c(-65))
+
+muertos_reg21 %>% 
+  arrange(desc(ratio_muertos)) %>% 
+  mutate(porc_muertos = scales::percent(ratio_muertos, big.mark = ".", decimal.mark = ","))
 
