@@ -6,18 +6,18 @@ pacman::p_load(tidyverse, #Tidyverse, porque sí
 
 num <- 1:12
 
-month_num <- if_else(num < 10, paste0("0",num), as.character(num))
-
-path <- "data/2022"
+path <- "https://www.carabineros.cl/transparencia/tproactiva/OS2/os2_acc_2022_"
 
 data_list <- list()
 
-#Tal como está el códgo, no funciona. Logré componer las 12 urls. Pero ni cerca de bajarlos
-for (number in month_num) {
-  filename <- paste0("https://www.carabineros.cl/transparencia/tproactiva/OS2/os2_acc_2022_", month_num, ".xlsx")
-  file_path <- file.path(path, filename)
-  data_list[[number]] <- read.xlsx(file_path)
+#Este loop funciona para cargar las bases 2022 en una lista
+for (i in num) {
+  mes_num <- ifelse(i < 10, paste0("0",i), as.character(i))
+  urls <- paste0(path, mes_num, ".xlsx")
+  data_list[[i]] <- read.xlsx(urls)
+  #print(urls)
 }
 
-
+#Ver cómo sacar a DF separado
+list2env(setNames(data_list, paste0("dataset",mes_num)), envir = .GlobalEnv)
 
