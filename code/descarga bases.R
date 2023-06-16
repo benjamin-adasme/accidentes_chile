@@ -78,6 +78,7 @@ for (i in num) {
   data_list_2[[i]] <- readxl::read_xlsx(path = p1, na = "NULL")
 }
 
+
 clean_mes <- function(x){
   if(length(x) == 22){
     select(x, -Mes)
@@ -123,6 +124,10 @@ l_7 <- lapply(l_6, clean_names)
 #Ver cómo sacar a DF separado
 list2env(setNames(l_7, paste0("df2022_",num)), envir = .GlobalEnv)
 
+# Para sacar objetos de una lista
+# for(i in 1:length(data_list_2)) {
+#   assign(paste0("db",i), data_list_2[[i]])
+# }
 
 #Ahora está correcto. 
 acc_22 <- bind_rows(df2022_1,
