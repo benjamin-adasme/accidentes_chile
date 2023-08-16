@@ -48,6 +48,8 @@ readr::write_rds(lista_acc_1, "data/lista_accidentes_10-19.rds", compress = "gz"
 
 rm(lista_10_19)
 
+# lista_10_19 <- read_rds("data/lista_accidentes_10-19.rds")
+
 # acc 20 y 21
 
 años_2 <- c(2020, 2021)
@@ -73,6 +75,8 @@ rm(lista_20_21)
 
 write_rds(lista_acc_2, "data/lista_accidentes_20-21.rds", compress = "gz")
 
+# lista_acc_2 <- read_rds("data/lista_accidentes_20-21.rds")
+
 # 2022
 
 url_22 <- "https://www.carabineros.cl/transparencia/tproactiva/OS2/os2_acc_2022.xlsx"
@@ -82,3 +86,8 @@ download.file(url_22, tf_22, mode = "wb")
 acc_22 <- read_xlsx(tf_22, sheet = 1)
 
 
+# l_10_21 <- c(lista_10_19, lista_acc_2)
+
+# df1 <- do.call(rbind, lista_10_19)
+
+# length(unique(df1$Comuna))
