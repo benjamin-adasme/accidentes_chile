@@ -96,15 +96,64 @@ acc_22 <- read_xlsx(tf_22, sheet = 1)
 
 ##### Unión bases #####
 
-df10_19 <- do.call(rbind, lista_acc_1) #Con las 2010 -2019 funciona pues son iguales.
+df10_19 <- do.call(rbind, lista_acc_1) #Con las 2010 -2019 funciona pues son iguales
+
 # df20_21 <- do.call(rbind, lista_acc_2) #No funciona con estas porque hay diferencias.
 
+agr_col <- function(x){ #función para igualar la cantidad de variables
+  if (length(x) == 20) {
+    out <- x %>% 
+      mutate(Parte.Nro. = NA,
+             Tribunal = NA)
+  } else{x}
+}
 
-list2env(setNames(lista_acc_2, paste0("df_",años_2)), envir = .GlobalEnv)
+ls_20 <- lapply(lista_acc_2, agr_col) #se crean dos variables nuevas en 2020
 
-df_2020 <- df_2020 %>% 
-  rename("Codcomuna" = Comuna,
-         "Comuna" = Comuna2)
 
-df20_21 <- full_join(df_2020, df_2021) # tira error por las columnas posixct
+name_cols <- colnames(ls_20[["2021"]]) #colnames de 2021
 
+rename_cols <- function(x){ #func para renombrar 2020 y 2021 igual
+  old_name <- colnames(x)
+  new <- x %>% 
+    rename_at(vars(old_name), ~name_cols)
+}
+
+ls_20 <- lapply(ls_20, rename_cols) #se renombran los df
+
+df20_21 <- do.call(rbind, ls_20)  #Se unen en un df.
+
+
+str(df10_19)
+str(df20_21)
+
+df_10_2 <- df10_19 %>% #Solo falta agregar cod comuna
+  mutate(Hora = format(as.POSIXct(Hora), format = "%H:%M:%S"),
+         Fecha_hora = as.POSIXct(paste(Fecha, Hora), format = "%Y-%m-%d %H:%M:%S"), .after = Hora)
+
+df_20_2 <- df20_21 %>% 
+  mutate(Hora = format(as.POSIXct(Hora), format = "%H:%M:%S"),
+         Fecha_hora = as.POSIXct(paste(Fecha, Hora), format = "%Y-%m-%d %H:%M:%S"), .after = Hora) %>% 
+  rename("Región" = Region)
+
+
+# full_acc <- full_join(df10_19, df20_21)
+
+full_acc_2 <- full_join(df_10_2, df_20_2) #Funciona. Corregir cod comuna, region
+
+acc_22_b <- acc_22 %>% 
+  rename_cols() %>% 
+  rename("Región" = Region) %>% 
+  mutate(Hora = format(as.POSIXct(Hora), format = "%H:%M:%S"),
+         Fecha_hora = as.POSIXct(paste(Fecha, Hora), format = "%Y-%m-%d %H:%M:%S"), .after = Hora,
+         Parte.Nro. = as.character(Parte.Nro.))
+
+full_acc_3 <- full_join(full_acc_2, acc_22_b)
+
+# Hasta aquí, full_acc_3 tiene todos los años, solo queda corregir variables como
+# región, codigo de comuna. E inspeccionar si el resto de las variables está ok.
+#Luego, queda descargar las bases de personas y vehículos.
+
+unique(full_acc_3$Urbano.Rural)
+
+#Cargar CUT
