@@ -156,4 +156,44 @@ full_acc_3 <- full_join(full_acc_2, acc_22_b)
 
 unique(full_acc_3$Urbano.Rural)
 
+## Región
+
+unique(full_acc_3$Región)
+
+full_acc_4 <- full_acc_3 %>% 
+  mutate(Región = case_match(Región, c("R.M.", "METROPOLITANA") ~ "METROPOLITANA"))
+
 #Cargar CUT
+#
+# Gráfico para readme
+# 
+
+full_acc_3 %>% 
+  mutate(año = year(Fecha)) %>% 
+  group_by(año) %>% 
+  summarise(n = n()) %>% 
+  ggplot(aes(año, n)) +
+  geom_line()
+
+full_acc_3 %>% 
+  group_by(Fecha) %>%
+  summarise(n_dia = n()) %>% 
+  ggplot(aes(Fecha, n_dia)) +
+  geom_line() +
+  geom_smooth(se = F)
+
+p1 <- full_acc_3 %>% 
+  group_by(Fecha) %>%
+  summarise(n_dia = n()) %>% 
+  mutate(m_5 = zoo::rollmean(n_dia, 5, fill = NA, align = "right")) %>% 
+  ggplot(aes(Fecha, m_5)) +
+  geom_line(color = "darkblue") +
+  labs(x = "Años", y = "Accidentes diarios (media móvil 5 días)",
+       title = "Accidentes de tránsito diarios en Chile (2010-2022)",
+       subtitle = "Media móvil de accidentes de tránsito en Chile registrados por Carabineros",
+       caption = "Datos de Carabineros de Chile. Elaborado por Benjamín Adasme Jara") + 
+  coord_cartesian(expand = F, clip = "off", ylim = c(90, 325)) +
+  theme_minimal()
+
+
+ggsave(filename = "plots/plot1_readme.jpg", plot = p1, width = 10, height = 7, dpi = 300)  
