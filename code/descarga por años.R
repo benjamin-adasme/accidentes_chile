@@ -89,7 +89,7 @@ lista_acc_2 <- read_rds("data/lista_accidentes_20-21.rds")
 
 url_22 <- "https://www.carabineros.cl/transparencia/tproactiva/OS2/os2_acc_2022.xlsx"
 tf_22 <- tempfile(fileext = ".xlsx")
-download.file(url_22, tf_22, mode = "wb")
+download.file(url_22, tf_22, mode = "wb", method = "curl")
 
 acc_22 <- read_xlsx(tf_22, sheet = 1)
 
@@ -161,39 +161,118 @@ unique(full_acc_3$Urbano.Rural)
 unique(full_acc_3$Región)
 
 full_acc_4 <- full_acc_3 %>% 
-  mutate(Región = case_match(Región, c("R.M.", "METROPOLITANA") ~ "METROPOLITANA"))
+  rename("Nom_comuna" = Comuna) %>% 
+  mutate(Región = case_match(Región, 
+                             c("R.M.", "METROPOLITANA") ~ "METROPOLITANA",
+                             c("I", "TARAPACÁ") ~ "TARAPACÁ",
+                             c("II", "ANTOFAGASTA") ~  "ANTOFAGASTA",
+                             c("III", "ATACAMA")~"ATACAMA",
+                             c("IV", "COQUIMBO") ~ "COQUIMBO",
+                             c("V", "VALPARAÍSO") ~ "VALPARAÍSO",
+                             c("VI", "LIB. BDO. O´HIGGINS") ~ "LIB. BDO. O´HIGGINS",
+                             c("VII", "MAULE") ~"MAULE",
+                             c("VIII", "BIO-BIO") ~ "BIO-BIO",
+                             c("IX", "ARAUCANÍA") ~ "ARAUCANÍA",
+                             c("X", "LOS LAGOS") ~ "LOS LAGOS",
+                             c("XI", "AYSÉN") ~ "AYSÉN",
+                             c("XII", "MAGALLANES Y ART. CHILENA") ~ "MAGALLANES Y ART. CHILENA",
+                             c("XIV", "LOS RÍOS") ~ "LOS RÍOS",
+                             c("XV", "ARICA Y PARINACOTA") ~ "ARICA Y PARINACOTA",
+                             c("XVI", "ÑUBLE") ~ "ÑUBLE"))
 
-#Cargar CUT
-#
+table(full_acc_4$Región)
+
+table(lista_acc_1[["2010"]]$Región)
+
+sort(unique(full_acc_4$Nom_comuna))
+
+# Guardar última lista para continuar el trabajo donde quedé
+# 
+
+# write_rds(full_acc_4, "data/accidentes_limpieza_v1.rds", compress = "gz")
+
+# acc_5 <- read_rds("data/accidentes_limpieza_v1.rds")
+ acc_5 <- full_acc_4
+
+
+acc_6 <- acc_5 %>% 
+  mutate(Codcomuna = case_when(Codcomuna < 10000 ~ paste0("0", as.character(Codcomuna)),
+                               Codcomuna >= 10000 ~ as.character(Codcomuna)))
+
+# Cargar CUT
+cut_com <- read_xls("code/CUT_2018_v04.xls")
+
+tb_comuna <- cut_com %>% 
+  select(6:7) %>% 
+  rename("cod_com" = 1,
+         "nom_com" = 2) %>% 
+  mutate(nom_com = str_to_upper(nom_com))
+
+
+
+tb_comuna <- tb_comuna %>% 
+  mutate(nom_com = iconv(nom_com, to = "ASCII//TRANSLIT"))
+
+# acc_6$Codcomuna_2 <- tb_comuna$cod_com[match(acc_6$Codcomuna, tb_comuna$nom_com)]
+
+acc_7 <- acc_6 |> 
+  mutate(Nom_comuna = case_match(Nom_comuna,
+                                 "AISEN" ~ "AYSEN",
+                                 "ALTO BIO BIO" ~ "ALTO BIOBIO",
+                                 "CHOL CHOL" ~ "CHOLCHOL",
+                                 "COIHAIQUE" ~ "COYHAIQUE",
+                                 "O'Higgins" ~ "O'HIGGINS",
+                                 "P. AGUIRRE CERDA" ~ "PEDRO AGUIRRE CERDA",
+                                 "SAN PEDRO ATACAMA" ~ "SAN PEDRO DE ATACAMA",
+                                 .default = Nom_comuna)) |> 
+  left_join(tb_comuna, by = c("Nom_comuna" = "nom_com")) #%>%
+#mutate(Codcomuna_3 = if_else(is.na(Codcomuna), cod_com, Codcomuna))
+
+acc_7 |> head()
+colSums(is.na(acc_7))
+sort(unique(acc_7$cod_com))
+
+acc_7 |> 
+  filter(is.na(cod_com)) |> 
+  group_by(Nom_comuna) |> 
+  summarise(perdidos = n())
+
+write_rds(acc_7, "data/acc_cons_v1.rds", compress = "bz2")
+
+
+
+
+
+
 # Gráfico para readme
 # 
 
-full_acc_3 %>% 
-  mutate(año = year(Fecha)) %>% 
-  group_by(año) %>% 
-  summarise(n = n()) %>% 
-  ggplot(aes(año, n)) +
-  geom_line()
-
-full_acc_3 %>% 
-  group_by(Fecha) %>%
-  summarise(n_dia = n()) %>% 
-  ggplot(aes(Fecha, n_dia)) +
-  geom_line() +
-  geom_smooth(se = F)
-
-p1 <- full_acc_3 %>% 
-  group_by(Fecha) %>%
-  summarise(n_dia = n()) %>% 
-  mutate(m_5 = zoo::rollmean(n_dia, 5, fill = NA, align = "right")) %>% 
-  ggplot(aes(Fecha, m_5)) +
-  geom_line(color = "darkblue") +
-  labs(x = "Años", y = "Accidentes diarios (media móvil 5 días)",
-       title = "Accidentes de tránsito diarios en Chile (2010-2022)",
-       subtitle = "Media móvil de accidentes de tránsito en Chile registrados por Carabineros",
-       caption = "Datos de Carabineros de Chile. Elaborado por Benjamín Adasme Jara") + 
-  coord_cartesian(expand = F, clip = "off", ylim = c(90, 325)) +
-  theme_minimal()
-
-
-ggsave(filename = "plots/plot1_readme.jpg", plot = p1, width = 10, height = 7, dpi = 300)  
+# full_acc_3 %>% 
+#   mutate(año = year(Fecha)) %>% 
+#   group_by(año) %>% 
+#   summarise(n = n()) %>% 
+#   ggplot(aes(año, n)) +
+#   geom_line()
+# 
+# full_acc_3 %>% 
+#   group_by(Fecha) %>%
+#   summarise(n_dia = n()) %>% 
+#   ggplot(aes(Fecha, n_dia)) +
+#   geom_line() +
+#   geom_smooth(se = F)
+# 
+# p1 <- full_acc_3 %>% 
+#   group_by(Fecha) %>%
+#   summarise(n_dia = n()) %>% 
+#   mutate(m_5 = zoo::rollmean(n_dia, 5, fill = NA, align = "right")) %>% 
+#   ggplot(aes(Fecha, m_5)) +
+#   geom_line(color = "darkblue") +
+#   labs(x = "Años", y = "Accidentes diarios (media móvil 5 días)",
+#        title = "Accidentes de tránsito diarios en Chile (2010-2022)",
+#        subtitle = "Media móvil de accidentes de tránsito en Chile registrados por Carabineros",
+#        caption = "Datos de Carabineros de Chile. Elaborado por Benjamín Adasme Jara") + 
+#   coord_cartesian(expand = F, clip = "off", ylim = c(90, 325)) +
+#   theme_minimal()
+# 
+# 
+# ggsave(filename = "plots/plot1_readme.jpg", plot = p1, width = 10, height = 7, dpi = 300)  
