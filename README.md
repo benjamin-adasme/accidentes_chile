@@ -8,7 +8,7 @@ Los registros son obtenidos desde [este enlace](https://www.carabineros.cl/trans
 
 Este repositorio tiene por objetivos
 
--   Unir y sistematizar los registros disponibles de tipo de accidente, tipo de personas y tipo de vehículos: incluye la limpieza y unión de los datos.
+-   Unir y sistematizar los registros disponibles de tipo de accidente, tipo de personas y tipo de vehículos: incluye la limpieza y unión de los datos (en proceso).
 -   Georreferenciar de los accidentes (pendiente)
 -   Analizar tendencias a diferentes niveles (pendiente)
 
