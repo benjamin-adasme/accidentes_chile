@@ -75,11 +75,46 @@ df_c <- separate(df_2021, col = rowname, into = c("Año", "fila"), convert = TRU
 
 write_rds(df_c, "data/personas_20_21.rds", compress = "gz")
 
+### 2023 y 2024
+
+anios_3 <- c("2022", "2023")
+
+pers_22_23 <- list()
+
+for (i in anios_3){
+  print(str_glue("Procesando base del año {i}"))
+  ruta <- str_glue("https://www.carabineros.cl/transparencia/tproactiva/OS2/os2_perso_{i}.xlsx")
+  tf <-  tempfile(fileext = ".xlsx")
+  download.file(ruta, tf, mode = "wb")
+  print(str_glue("Se descargó la base de personas del año {i}"))
+  df <- read_xlsx(path = tf, sheet = 1)
+  pers_22_23[[i]] <- df
+  print(str_glue("Se agregó la base de personas del año {i} a la lista"))
+}
+
+nom_corr <- names(pers_22_23$`2022`) 
+
+
+for(i in anios_3){
+  pers_22_23[[i]] <- `colnames<-`(pers_22_23[[i]], nom_corr)
+}
+
+df_2023 <- do.call(rbind, pers_22_23)
+
+df_2023 <- rownames_to_column(df_2023)
+
+df_d <- df_2023 %>% 
+  separate(col = rowname, into = c("Año", "fila"), convert = TRUE)
+  
+write_rds(df_d, "data/personas_22_23.rds", compress = "gz")
+
 #### Retomamos aquí ####
 
 df_1019 <- read_rds("data/personas_10_19.rds")
 
 df_2021 <- read_rds("data/personas_20_21.rds")
+
+df_2023 <- read_rds("data/personas_22_23.rds")
 
 df_1019 <- df_1019 %>% 
   mutate(Hora = format(as.POSIXct(Hora), format = "%H:%M:%S"),
@@ -89,8 +124,13 @@ df_2021 <- df_2021 %>%
   mutate(Hora = format(as.POSIXct(Hora), format = "%H:%M:%S"),
          Fecha_hora = as.POSIXct(paste(Fecha, Hora), format = "%Y-%m-%d %H:%M:%S"), .after = Hora)
 
+df_2023 <- df_2023 %>% 
+  mutate(Hora = format(as.POSIXct(Hora), format = "%H:%M:%S"),
+         Fecha_hora = as.POSIXct(paste(Fecha, Hora), format = "%Y-%m-%d %H:%M:%S"), .after = Hora)
 
-df_1 <- full_join(df_1019, df_2021)
+
+df_1 <- full_join(df_1019, df_2021) %>% 
+  full_join(df_2023)
 
 df_2 <- df_1 %>% 
   rename("Nom_comuna" = Comuna) %>% 
