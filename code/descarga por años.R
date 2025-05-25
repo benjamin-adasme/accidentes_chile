@@ -1,4 +1,8 @@
 
+install.packages('remotes')
+remotes::install_github('https://github.com/velofrog/readxlsb')
+install.packages('xml2')
+
 pacman::p_load(readxl,
                tidyverse,
                readxlsb)
@@ -85,14 +89,36 @@ write_rds(lista_acc_2, "data/lista_accidentes_20-21.rds", compress = "gz")
 
 lista_acc_2 <- read_rds("data/lista_accidentes_20-21.rds")
 
-#### 2022 ####
+#### 2022 y 2023 ####
 
-url_22 <- "https://www.carabineros.cl/transparencia/tproactiva/OS2/os2_acc_2022.xlsx"
-tf_22 <- tempfile(fileext = ".xlsx")
-download.file(url_22, tf_22, mode = "wb", method = "curl")
+años_3 <- 2022:2023
 
-acc_22 <- read_xlsx(tf_22, sheet = 1)
+lista_22_23 <- list()
 
+
+
+for (i in años_3) {
+  urls <- paste0(path_2,i,".xlsx")
+  tf_4 <- tempfile(fileext = ".xlsx")
+  download.file(urls, tf_4, mode = "wb")
+  df <- readxl::read_xlsx(path = tf_4, sheet = 1)
+  # lista_22_23 <- append(lista_22_23, df)
+  lista_22_23[[i]] <- df
+}
+
+lista_acc_3 <- lista_22_23[2022:2023]
+
+# url_22 <- "https://www.carabineros.cl/transparencia/tproactiva/OS2/os2_acc_2022.xlsx"
+# tf_22 <- tempfile(fileext = ".xlsx")
+# download.file(url_22, tf_22, mode = "wb", method = "curl")
+# 
+# acc_22 <- read_xlsx(tf_22, sheet = 1)
+
+
+nom_a <- names(lista_acc_1[[1]])
+nom_b <- names(lista_acc_2[[1]])
+nom_c <- names(lista_acc_3[[1]])
+nom_b == nom_c
 
 ##### Unión bases #####
 
@@ -141,14 +167,27 @@ df_20_2 <- df20_21 %>%
 
 full_acc_2 <- full_join(df_10_2, df_20_2) #Funciona. Corregir cod comuna, region
 
-acc_22_b <- acc_22 %>% 
-  rename_cols() %>% 
-  rename("Región" = Region) %>% 
+
+# ls_22 <- lapply(lista_acc_3, rename_cols)
+# df22_23 <- do.call(rbind, ls_22)
+# 
+# df_22_2 <- df22_23 %>% 
+#   mutate(Hora = format(as.POSIXct(Hora), format = "%H:%M:%S"),
+#          Fecha_hora = as.POSIXct(paste(Fecha, Hora), format = "%Y-%m-%d %H:%M:%S"), .after = Hora) %>% 
+#   rename("Región" = Region) %>% 
+#   mutate(across(Muertos:Ilesos, as.numeric),
+#          Parte.Nro. = as.character(Parte.Nro.))
+
+acc_22_b <- lista_acc_3[[1]] %>%
+  full_join(lista_acc_3[[2]]) %>% 
+  rename_cols() %>%
+  rename("Región" = Region) %>%
   mutate(Hora = format(as.POSIXct(Hora), format = "%H:%M:%S"),
          Fecha_hora = as.POSIXct(paste(Fecha, Hora), format = "%Y-%m-%d %H:%M:%S"), .after = Hora,
          Parte.Nro. = as.character(Parte.Nro.))
 
 full_acc_3 <- full_join(full_acc_2, acc_22_b)
+
 
 # Hasta aquí, full_acc_3 tiene todos los años, solo queda corregir variables como
 # región, codigo de comuna. E inspeccionar si el resto de las variables está ok.
@@ -189,15 +228,16 @@ sort(unique(full_acc_4$Nom_comuna))
 # Guardar última lista para continuar el trabajo donde quedé
 # 
 
-# write_rds(full_acc_4, "data/accidentes_limpieza_v1.rds", compress = "gz")
+write_rds(full_acc_4, "data/accidentes_limpieza_v1.rds", compress = "gz")
 
 # acc_5 <- read_rds("data/accidentes_limpieza_v1.rds")
- acc_5 <- full_acc_4
+acc_5 <- full_acc_4
 
 
 acc_6 <- acc_5 %>% 
-  mutate(Codcomuna = case_when(Codcomuna < 10000 ~ paste0("0", as.character(Codcomuna)),
-                               Codcomuna >= 10000 ~ as.character(Codcomuna)))
+  # mutate(Codcomuna = case_when(Codcomuna < 10000 ~ paste0("0", as.character(Codcomuna)),
+                               # Codcomuna >= 10000 ~ as.character(Codcomuna)))
+  mutate(Codcomuna = sprintf("%05d", Codcomuna))
 
 # Cargar CUT
 cut_com <- read_xls("code/CUT_2018_v04.xls")

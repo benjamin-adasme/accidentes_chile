@@ -1,4 +1,5 @@
 
+# install.packages('pacman')
 pacman::p_load(tidyverse, #Tidyverse, porque sí
                janitor, #Para procesar tabulados y limpieza de nombres
                openxlsx, #Para leer urls directamente
